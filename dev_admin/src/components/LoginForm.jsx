@@ -22,7 +22,7 @@ export default function LoginForm() {
         return;
       }
       localStorage.setItem('authToken', response.token);
-      localStorage.setItem('loggedInUser', JSON.stringify({ username }));
+      localStorage.setItem('dev_user', JSON.stringify({ username }));
       toast.success('Login successful!');
       navigate('/dashboard');
     } catch (error) {
@@ -100,7 +100,7 @@ export default function LoginForm() {
           </button>
         </form>
         <p className="text-center text-gray-400 mt-4 text-xs">
-          © {new Date().getFullYear()} Order Appu Admin Panel. All rights reserved.
+          © {new Date().getFullYear()} Order Appu Developer Panel. All rights reserved.
         </p>
       </div>
     </div>

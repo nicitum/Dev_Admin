@@ -155,7 +155,7 @@ function LogoutButton({ className = "" }) {
     <button
       className={`px-4 py-2 rounded transition ${className}`}
       onClick={async () => {
-        const user = JSON.parse(localStorage.getItem('loggedInUser'));
+        const user = JSON.parse(localStorage.getItem('dev_user'));
         if (!user?.username) {
           localStorage.clear();
           navigate('/');
