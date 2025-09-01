@@ -159,6 +159,8 @@ export default function Clients() {
 function ClientDetailsModal({ client, onClose }) {
   const [imgError, setImgError] = useState(false);
   const imageUrl = client.image && !imgError ? `http://147.93.110.150:3001/api/client-image/${client.image}` : null;
+  
+
   return (
     <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center p-4 z-50">
       <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-2xl max-h-[80vh] overflow-y-auto">
@@ -194,6 +196,15 @@ function ClientDetailsModal({ client, onClose }) {
           <Info label="Sales Manager Login" value={client.sales_mgr_login || '-'} />
           <Info label="Superadmin Login" value={client.superadmin_login || '-'} />
           <Info label="Plan Duration (days)" value={client.duration || '-'} />
+          <Info label="Product Prefix" value={client.product_prefix || '-'} />
+          <Info label="Customer Prefix" value={client.customer_prefix || '-'} />
+          <Info label="SM Prefix" value={client.sm_prefix || '-'} />
+          <Info label="Order Prefix" value={client.ord_prefix || '-'} />
+          <Info label="Invoice Prefix" value={client.inv_prefix || '-'} />
+          <Info label="Order Prefix Number" value={client.ord_prefix_num || '-'} />
+          <Info label="HSN Length" value={client.hsn_length || '-'} />
+          <Info label="Default Due On" value={client.default_due_on !== undefined && client.default_due_on !== null ? client.default_due_on : '-'} />
+          <Info label="Max Due On" value={client.max_due_on !== undefined && client.max_due_on !== null ? client.max_due_on : '-'} />
           <Info label="Created At" value={formatDateTimeDMY(client.created_at)} />
           <Info label="Updated At" value={formatDateTimeDMY(client.updated_at)} />
         </div>
@@ -203,10 +214,16 @@ function ClientDetailsModal({ client, onClose }) {
 }
 
 function EditClientModal({ client, onClose, onSave }) {
-  const [form, setForm] = useState({ ...client });
+  const [form, setForm] = useState({ 
+    ...client,
+    default_due_on: client.default_due_on !== undefined && client.default_due_on !== null ? client.default_due_on : '',
+    max_due_on: client.max_due_on !== undefined && client.max_due_on !== null ? client.max_due_on : ''
+  });
   const [loading, setLoading] = useState(false);
   const [imagePreview, setImagePreview] = useState(form.image ? `http://147.93.110.150:3001/api/client-image/${form.image}` : null);
   const [imageUploading, setImageUploading] = useState(false);
+  
+
 
   // Auto-calculate expiry_date when duration changes
   useEffect(() => {
@@ -259,6 +276,25 @@ function EditClientModal({ client, onClose, onSave }) {
 
   const handleSubmit = async e => {
     e.preventDefault();
+    
+    // Validate required fields
+    if (!form.default_due_on || !form.max_due_on) {
+      toast.error('Default Due On and Max Due On are required fields');
+      return;
+    }
+    
+    // Validate that both fields are non-negative integers
+    if (parseInt(form.default_due_on) < 0 || parseInt(form.max_due_on) < 0) {
+      toast.error('Default Due On and Max Due On must be non-negative integers');
+      return;
+    }
+    
+    // Validate that max_due_on is greater than default_due_on
+    if (parseInt(form.max_due_on) <= parseInt(form.default_due_on)) {
+      toast.error('Max Due On must be greater than Default Due On');
+      return;
+    }
+    
     setLoading(true);
     try {
       const token = localStorage.getItem('authToken');
@@ -283,7 +319,7 @@ function EditClientModal({ client, onClose, onSave }) {
           }
         } else if (key === 'image') {
           // Only send the image filename
-          submitData.append('image', value || '');
+          submitData.append(key, value || '');
         } else {
           submitData.append(key, value ?? '');
         }
@@ -333,12 +369,12 @@ function EditClientModal({ client, onClose, onSave }) {
           </div>
         )}
         <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Input label="Client Name" name="client_name" value={form.client_name || ''} onChange={handleChange} />
-          <Input label="License No" name="license_no" value={form.license_no || ''} onChange={handleChange} />
+          <Input label="Client Name" name="client_name" value={form.client_name || ''} onChange={handleChange} required />
+          <Input label="License No" name="license_no" value={form.license_no || ''} onChange={handleChange} required />
           <Input label="Plan" name="plan_name" value={form.plan_name || ''} onChange={handleChange} />
           <Input label="Status" name="status" value={form.status || ''} onChange={handleChange} />
           <DisplayField label="Issue Date" value={formatDateLong(form.issue_date)} />
-          <Input label="Plan Duration (days)" name="duration" value={form.duration || ''} onChange={handleChange} />
+          <Input label="Plan Duration (days)" name="duration" value={form.duration || ''} onChange={handleChange} required />
           <Input label="Expiry Date" name="expiry_date" value={form.expiry_date || ''} onChange={handleChange} type="date" disabled />
           <Input label="Advt. Timer" name="adv_timer" value={form.adv_timer || ''} onChange={handleChange} />
           <Input label="Address" name="client_address" value={form.client_address || ''} onChange={handleChange} />
@@ -346,10 +382,15 @@ function EditClientModal({ client, onClose, onSave }) {
           <Input label="Customers Login" name="customers_login" value={form.customers_login || ''} onChange={handleChange} />
           <Input label="Sales Manager Login" name="sales_mgr_login" value={form.sales_mgr_login || ''} onChange={handleChange} />
           <Input label="Superadmin Login" name="superadmin_login" value={form.superadmin_login || ''} onChange={handleChange} />
-          <Input label="Product Prefix" name="product_prefix" value={form.product_prefix || ''} onChange={handleChange} />
-          <Input label="Customer Prefix" name="customer_prefix" value={form.customer_prefix || ''} onChange={handleChange} />
-          <Input label="SM Prefix" name="sm_prefix" value={form.sm_prefix || ''} onChange={handleChange} />
+          <Input label="Product Prefix" name="product_prefix" value={form.product_prefix || ''} onChange={handleChange} required />
+          <Input label="Customer Prefix" name="customer_prefix" value={form.customer_prefix || ''} onChange={handleChange} required />
+          <Input label="SM Prefix" name="sm_prefix" value={form.sm_prefix || ''} onChange={handleChange} required />
+          <Input label="Order Prefix" name="ord_prefix" value={form.ord_prefix || ''} onChange={handleChange} required />
+          <Input label="Invoice Prefix" name="inv_prefix" value={form.inv_prefix || ''} onChange={handleChange} required />
+          <Input label="Order Prefix Number" name="ord_prefix_num" value={form.ord_prefix_num || ''} onChange={handleChange} required />
           <Input label="HSN Length" name="hsn_length" value={form.hsn_length || ''} onChange={handleChange} />
+          <Input label="Default Due On" name="default_due_on" value={form.default_due_on !== undefined && form.default_due_on !== null ? form.default_due_on : ''} onChange={handleChange} type="number" min="0" required />
+          <Input label="Max Due On" name="max_due_on" value={form.max_due_on !== undefined && form.max_due_on !== null ? form.max_due_on : ''} onChange={handleChange} type="number" min="0" required />
           <Input label="Image" name="image" type="file" onChange={handleChange} />
           <div className="md:col-span-2 flex justify-end mt-4">
             <button type="submit" className="px-6 py-2 bg-blue-700 text-white rounded hover:bg-blue-800 transition" disabled={loading}>
@@ -362,15 +403,32 @@ function EditClientModal({ client, onClose, onSave }) {
   );
 }
 
-function Input({ label, name, value, onChange, type = 'text' }) {
+function Input({ label, name, value, onChange, type = 'text', min, required }) {
+  const handleNumberChange = (e) => {
+    if (type === 'number') {
+      const value = e.target.value;
+      // Only allow positive integers
+      if (value === '' || /^\d+$/.test(value)) {
+        onChange(e);
+      }
+    } else {
+      onChange(e);
+    }
+  };
+
   return (
     <div>
-      <label className="block mb-1 font-medium">{label}</label>
+      <label className="block mb-1 font-medium">
+        {label}
+        {required && <span className="text-red-500 ml-1">*</span>}
+      </label>
       <input
         type={type}
         name={name}
         value={value}
-        onChange={onChange}
+        onChange={handleNumberChange}
+        min={min}
+        required={required}
         className="w-full px-3 py-2 border rounded"
       />
     </div>
@@ -415,7 +473,12 @@ function AddClientModal({ onClose, onSave }) {
     product_prefix: '',
     customer_prefix: '',
     sm_prefix: '',
+    ord_prefix: '',
+    inv_prefix: '',
+    ord_prefix_num: '',
     hsn_length: '',
+    default_due_on: '',
+    max_due_on: '',
     // Remove image filename, use imageFile for file
   });
   const [imageFile, setImageFile] = useState(null); // store file
@@ -453,6 +516,25 @@ function AddClientModal({ onClose, onSave }) {
 
   const handleSubmit = async e => {
     e.preventDefault();
+    
+    // Validate required fields
+    if (!form.default_due_on || !form.max_due_on) {
+      toast.error('Default Due On and Max Due On are required fields');
+      return;
+    }
+    
+    // Validate that both fields are non-negative integers
+    if (parseInt(form.default_due_on) < 0 || parseInt(form.max_due_on) < 0) {
+      toast.error('Default Due On and Max Due On must be non-negative integers');
+      return;
+    }
+    
+    // Validate that max_due_on is greater than default_due_on
+    if (parseInt(form.max_due_on) <= parseInt(form.default_due_on)) {
+      toast.error('Max Due On must be greater than Default Due On');
+      return;
+    }
+    
     setLoading(true);
     try {
       const token = localStorage.getItem('authToken');
@@ -522,12 +604,12 @@ function AddClientModal({ onClose, onSave }) {
           </div>
         )}
         <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Input label="Client Name" name="client_name" value={form.client_name || ''} onChange={handleChange} />
-          <Input label="License No" name="license_no" value={form.license_no || ''} onChange={handleChange} />
+          <Input label="Client Name" name="client_name" value={form.client_name || ''} onChange={handleChange} required />
+          <Input label="License No" name="license_no" value={form.license_no || ''} onChange={handleChange} required />
           <Input label="Plan" name="plan_name" value={form.plan_name || ''} onChange={handleChange} />
           <Input label="Status" name="status" value={form.status || ''} onChange={handleChange} />
           <Input label="Issue Date" name="issue_date" value={form.issue_date || ''} onChange={handleChange} type="date" disabled />
-          <Input label="Plan Duration (days)" name="duration" value={form.duration || ''} onChange={handleChange} />
+          <Input label="Plan Duration (days)" name="duration" value={form.duration || ''} onChange={handleChange} required />
           <Input label="Expiry Date" name="expiry_date" value={form.expiry_date || ''} onChange={handleChange} type="date" disabled />
           <Input label="Advt. Timer" name="adv_timer" value={form.adv_timer || ''} onChange={handleChange} />
           <Input label="Address" name="client_address" value={form.client_address || ''} onChange={handleChange} />
@@ -535,10 +617,15 @@ function AddClientModal({ onClose, onSave }) {
           <Input label="Customers Login" name="customers_login" value={form.customers_login || ''} onChange={handleChange} />
           <Input label="Sales Manager Login" name="sales_mgr_login" value={form.sales_mgr_login || ''} onChange={handleChange} />
           <Input label="Superadmin Login" name="superadmin_login" value={form.superadmin_login || ''} onChange={handleChange} />
-          <Input label="Product Prefix" name="product_prefix" value={form.product_prefix || ''} onChange={handleChange} />
-          <Input label="Customer Prefix" name="customer_prefix" value={form.customer_prefix || ''} onChange={handleChange} />
-          <Input label="SM Prefix" name="sm_prefix" value={form.sm_prefix || ''} onChange={handleChange} />
+          <Input label="Product Prefix" name="product_prefix" value={form.product_prefix || ''} onChange={handleChange} required />
+          <Input label="Customer Prefix" name="customer_prefix" value={form.customer_prefix || ''} onChange={handleChange} required />
+          <Input label="SM Prefix" name="sm_prefix" value={form.sm_prefix || ''} onChange={handleChange} required />
+          <Input label="Order Prefix" name="ord_prefix" value={form.ord_prefix || ''} onChange={handleChange} required />
+          <Input label="Invoice Prefix" name="inv_prefix" value={form.inv_prefix || ''} onChange={handleChange} required />
+          <Input label="Order Prefix Number" name="ord_prefix_num" value={form.ord_prefix_num || ''} onChange={handleChange} required />
           <Input label="HSN Length" name="hsn_length" value={form.hsn_length || ''} onChange={handleChange} />
+          <Input label="Default Due On" name="default_due_on" value={form.default_due_on !== undefined && form.default_due_on !== null ? form.default_due_on : ''} onChange={handleChange} type="number" min="0" required />
+          <Input label="Max Due On" name="max_due_on" value={form.max_due_on !== undefined && form.max_due_on !== null ? form.max_due_on : ''} onChange={handleChange} type="number" min="0" required />
           <Input label="Image" name="image" type="file" onChange={handleChange} />
           <div className="md:col-span-2 flex justify-end mt-4">
             <button type="submit" className="px-6 py-2 bg-green-700 text-white rounded hover:bg-green-800 transition" disabled={loading}>
