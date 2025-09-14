@@ -4,6 +4,7 @@ import Clients from './components/Clients';
 import React, { useState } from 'react';
 import toast from 'react-hot-toast';
 import logo from './assets/logo.jpg';
+import { logout } from './services/api';
 
 function ChangePassword() {
   const navigate = useNavigate();
@@ -36,7 +37,7 @@ function ChangePassword() {
     setLoading(true);
     const token = localStorage.getItem('authToken');
     try {
-      const res = await fetch('http://147.93.110.150:3001/api/change-password', {
+      const res = await fetch('http://localhost:3001/api/change-password', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -162,20 +163,15 @@ function LogoutButton({ className = "" }) {
           return;
         }
         try {
-          const res = await fetch('http://147.93.110.150:3001/api/logout', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username: user.username })
-          });
-          if (res.ok) {
-            toast.success('Logged out successfully');
-            localStorage.clear();
-            navigate('/');
-          } else {
-            toast.error('Logout failed');
-          }
+          await logout(user.username);
+          toast.success('Logged out successfully');
+          localStorage.clear();
+          navigate('/');
         } catch (err) {
-          toast.error('Logout error');
+          toast.error('Logout failed');
+          // Still clear local storage and navigate even if server logout fails
+          localStorage.clear();
+          navigate('/');
         }
       }}
     >

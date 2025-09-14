@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
-import { Eye, Pencil } from 'lucide-react';
+import { Eye, Pencil, LogOut, Settings } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { logout } from '../services/api';
+import AppUpdateHelper from './AppUpdateHelper';
 
 function formatDateDMY(dateStr) {
   if (!dateStr) return '-';
@@ -51,6 +54,9 @@ export default function Clients() {
   const [editClient, setEditClient] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false); // Add state for AddClientModal
+  const [appUpdateClient, setAppUpdateClient] = useState(null);
+  const [showAppUpdateModal, setShowAppUpdateModal] = useState(false);
+  const navigate = useNavigate();
 
   const fetchClients = async () => {
     setLoading(true);
@@ -73,6 +79,26 @@ export default function Clients() {
     fetchClients();
   }, []);
 
+  const handleLogout = async () => {
+    const user = JSON.parse(localStorage.getItem('dev_user'));
+    if (!user?.username) {
+      localStorage.clear();
+      navigate('/');
+      return;
+    }
+    try {
+      await logout(user.username);
+      toast.success('Logged out successfully');
+      localStorage.clear();
+      navigate('/');
+    } catch (err) {
+      toast.error('Logout failed');
+      // Still clear local storage and navigate even if server logout fails
+      localStorage.clear();
+      navigate('/');
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -85,12 +111,22 @@ export default function Clients() {
     <div className="p-8">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Clients</h1>
-        <button
-          className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition"
-          onClick={() => setShowAddModal(true)}
-        >
-          + Add Client
-        </button>
+        <div className="flex gap-2">
+          <button
+            className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition"
+            onClick={() => setShowAddModal(true)}
+          >
+            + Add Client
+          </button>
+          <button
+            className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition flex items-center gap-2"
+            onClick={handleLogout}
+            title="Logout"
+          >
+            <LogOut className="w-4 h-4" />
+            Logout
+          </button>
+        </div>
       </div>
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
@@ -131,6 +167,13 @@ export default function Clients() {
                   >
                     <Pencil className="w-5 h-5 text-indigo-600 group-hover:text-indigo-800" />
                   </button>
+                  <button
+                    onClick={() => { setAppUpdateClient(client); setShowAppUpdateModal(true); }}
+                    className="p-2 rounded-full hover:bg-green-100 group ml-2"
+                    title="App Update Helper"
+                  >
+                    <Settings className="w-5 h-5 text-green-600 group-hover:text-green-800" />
+                  </button>
                 </td>
               </tr>
             ))}
@@ -151,6 +194,15 @@ export default function Clients() {
           fetchClients();
           setShowAddModal(false);
         }} />
+      )}
+      {showAppUpdateModal && appUpdateClient && (
+        <AppUpdateHelper 
+          client={appUpdateClient} 
+          onClose={() => setShowAppUpdateModal(false)} 
+          onSave={() => {
+            setShowAppUpdateModal(false);
+          }} 
+        />
       )}
     </div>
   );
