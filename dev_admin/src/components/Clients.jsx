@@ -128,7 +128,34 @@ export default function Clients() {
           </button>
         </div>
       </div>
-      <div className="overflow-x-auto">
+
+      <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+        <h2 className="text-lg font-semibold mb-4 text-gray-800">Client Status Overview</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+            <h3 className="text-green-800 font-semibold">Active Clients</h3>
+            <p className="text-2xl font-bold text-green-600">
+              {clients.filter(client => client.status && client.status.toLowerCase() === 'active').length}
+            </p>
+          </div>
+          <div className="bg-red-50 p-4 rounded-lg border border-red-200">
+            <h3 className="text-red-800 font-semibold">Inactive Clients</h3>
+            <p className="text-2xl font-bold text-red-600">
+              {clients.filter(client => !client.status || client.status.toLowerCase() !== 'active').length}
+            </p>
+          </div>
+          <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+            <h3 className="text-blue-800 font-semibold">Total Clients</h3>
+            <p className="text-2xl font-bold text-blue-600">{clients.length}</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-lg shadow-md overflow-hidden">
+        <div className="px-6 py-4 bg-gray-50 border-b">
+          <h2 className="text-lg font-semibold text-gray-800">Client Management</h2>
+        </div>
+        <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
@@ -170,7 +197,7 @@ export default function Clients() {
                   <button
                     onClick={() => { setAppUpdateClient(client); setShowAppUpdateModal(true); }}
                     className="p-2 rounded-full hover:bg-green-100 group ml-2"
-                    title="App Update Helper"
+                    title="Client Update Settings"
                   >
                     <Settings className="w-5 h-5 text-green-600 group-hover:text-green-800" />
                   </button>
@@ -179,6 +206,7 @@ export default function Clients() {
             ))}
           </tbody>
         </table>
+        </div>
       </div>
       {showModal && selectedClient && (
         <ClientDetailsModal client={selectedClient} onClose={() => setShowModal(false)} />
@@ -200,6 +228,7 @@ export default function Clients() {
           client={appUpdateClient} 
           onClose={() => setShowAppUpdateModal(false)} 
           onSave={() => {
+            fetchClients();
             setShowAppUpdateModal(false);
           }} 
         />
@@ -257,6 +286,7 @@ function ClientDetailsModal({ client, onClose }) {
           <Info label="HSN Length" value={client.hsn_length || '-'} />
           <Info label="Default Due On" value={client.default_due_on !== undefined && client.default_due_on !== null ? client.default_due_on : '-'} />
           <Info label="Max Due On" value={client.max_due_on !== undefined && client.max_due_on !== null ? client.max_due_on : '-'} />
+          <Info label="Passcode" value={client.passcode || '-'} />
           <Info label="Created At" value={formatDateTimeDMY(client.created_at)} />
           <Info label="Updated At" value={formatDateTimeDMY(client.updated_at)} />
         </div>
@@ -269,7 +299,8 @@ function EditClientModal({ client, onClose, onSave }) {
   const [form, setForm] = useState({ 
     ...client,
     default_due_on: client.default_due_on !== undefined && client.default_due_on !== null ? client.default_due_on : '',
-    max_due_on: client.max_due_on !== undefined && client.max_due_on !== null ? client.max_due_on : ''
+    max_due_on: client.max_due_on !== undefined && client.max_due_on !== null ? client.max_due_on : '',
+    passcode: client.passcode || ''
   });
   const [loading, setLoading] = useState(false);
   const [imagePreview, setImagePreview] = useState(form.image ? `http://147.93.110.150:3001/api/client-image/${form.image}` : null);
@@ -335,6 +366,12 @@ function EditClientModal({ client, onClose, onSave }) {
       return;
     }
     
+    // Validate passcode
+    if (!form.passcode || form.passcode.length !== 8 || !/^\d{8}$/.test(form.passcode)) {
+      toast.error('Passcode must be exactly 8 digits');
+      return;
+    }
+    
     // Validate that both fields are non-negative integers
     if (parseInt(form.default_due_on) < 0 || parseInt(form.max_due_on) < 0) {
       toast.error('Default Due On and Max Due On must be non-negative integers');
@@ -372,6 +409,9 @@ function EditClientModal({ client, onClose, onSave }) {
         } else if (key === 'image') {
           // Only send the image filename
           submitData.append(key, value || '');
+        } else if (key === 'passcode') {
+          // Send passcode as integer
+          submitData.append(key, parseInt(value) || 0);
         } else {
           submitData.append(key, value ?? '');
         }
@@ -443,6 +483,7 @@ function EditClientModal({ client, onClose, onSave }) {
           <Input label="HSN Length" name="hsn_length" value={form.hsn_length || ''} onChange={handleChange} />
           <Input label="Default Due On" name="default_due_on" value={form.default_due_on !== undefined && form.default_due_on !== null ? form.default_due_on : ''} onChange={handleChange} type="number" min="0" required />
           <Input label="Max Due On" name="max_due_on" value={form.max_due_on !== undefined && form.max_due_on !== null ? form.max_due_on : ''} onChange={handleChange} type="number" min="0" required />
+          <Input label="Passcode" name="passcode" value={form.passcode || ''} onChange={handleChange} maxLength="8" pattern="[0-9]{8}" placeholder="8-digit passcode" required />
           <Input label="Image" name="image" type="file" onChange={handleChange} />
           <div className="md:col-span-2 flex justify-end mt-4">
             <button type="submit" className="px-6 py-2 bg-blue-700 text-white rounded hover:bg-blue-800 transition" disabled={loading}>
@@ -455,12 +496,18 @@ function EditClientModal({ client, onClose, onSave }) {
   );
 }
 
-function Input({ label, name, value, onChange, type = 'text', min, required }) {
+function Input({ label, name, value, onChange, type = 'text', min, required, maxLength, pattern, placeholder }) {
   const handleNumberChange = (e) => {
     if (type === 'number') {
       const value = e.target.value;
       // Only allow positive integers
       if (value === '' || /^\d+$/.test(value)) {
+        onChange(e);
+      }
+    } else if (name === 'passcode') {
+      const value = e.target.value;
+      // Only allow exactly 8 digits
+      if (value === '' || (/^\d{0,8}$/.test(value))) {
         onChange(e);
       }
     } else {
@@ -481,6 +528,9 @@ function Input({ label, name, value, onChange, type = 'text', min, required }) {
         onChange={handleNumberChange}
         min={min}
         required={required}
+        maxLength={maxLength}
+        pattern={pattern}
+        placeholder={placeholder}
         className="w-full px-3 py-2 border rounded"
       />
     </div>
@@ -531,6 +581,7 @@ function AddClientModal({ onClose, onSave }) {
     hsn_length: '',
     default_due_on: '',
     max_due_on: '',
+    passcode: '',
     // Remove image filename, use imageFile for file
   });
   const [imageFile, setImageFile] = useState(null); // store file
@@ -575,6 +626,12 @@ function AddClientModal({ onClose, onSave }) {
       return;
     }
     
+    // Validate passcode
+    if (!form.passcode || form.passcode.length !== 8 || !/^\d{8}$/.test(form.passcode)) {
+      toast.error('Passcode must be exactly 8 digits');
+      return;
+    }
+    
     // Validate that both fields are non-negative integers
     if (parseInt(form.default_due_on) < 0 || parseInt(form.max_due_on) < 0) {
       toast.error('Default Due On and Max Due On must be non-negative integers');
@@ -608,6 +665,9 @@ function AddClientModal({ onClose, onSave }) {
           } else {
             submitData.append(key, '');
           }
+        } else if (key === 'passcode') {
+          // Send passcode as integer
+          submitData.append(key, parseInt(value) || 0);
         } else {
           submitData.append(key, value ?? '');
         }
@@ -678,6 +738,7 @@ function AddClientModal({ onClose, onSave }) {
           <Input label="HSN Length" name="hsn_length" value={form.hsn_length || ''} onChange={handleChange} />
           <Input label="Default Due On" name="default_due_on" value={form.default_due_on !== undefined && form.default_due_on !== null ? form.default_due_on : ''} onChange={handleChange} type="number" min="0" required />
           <Input label="Max Due On" name="max_due_on" value={form.max_due_on !== undefined && form.max_due_on !== null ? form.max_due_on : ''} onChange={handleChange} type="number" min="0" required />
+          <Input label="Passcode" name="passcode" value={form.passcode || ''} onChange={handleChange} maxLength="8" pattern="[0-9]{8}" placeholder="8-digit passcode" required />
           <Input label="Image" name="image" type="file" onChange={handleChange} />
           <div className="md:col-span-2 flex justify-end mt-4">
             <button type="submit" className="px-6 py-2 bg-green-700 text-white rounded hover:bg-green-800 transition" disabled={loading}>

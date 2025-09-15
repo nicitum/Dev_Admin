@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate, Link, useNavigate, useLocation } from 'react-router-dom';
 import LoginForm from './components/LoginForm';
 import Clients from './components/Clients';
+import DatabaseManagement from './components/DatabaseManagement';
 import React, { useState } from 'react';
 import toast from 'react-hot-toast';
 import logo from './assets/logo.jpg';
@@ -130,6 +131,9 @@ function Sidebar() {
         <Link to="/dashboard/clients" className="flex items-center px-4 py-2 rounded-lg transition-colors text-gray-100 hover:bg-[#004080] font-semibold text-lg">
           Clients
         </Link>
+        <Link to="/dashboard/database-management" className="flex items-center px-4 py-2 rounded-lg transition-colors text-gray-100 hover:bg-[#004080] font-semibold text-lg">
+          Database Management
+        </Link>
         <div>
           <button
             onClick={() => setSettingsOpen(v => !v)}
@@ -198,6 +202,7 @@ function Dashboard() {
         <Routes>
           <Route path="/" element={<DashboardHome />} />
           <Route path="/clients" element={<Clients />} />
+          <Route path="/database-management" element={<DatabaseManagement />} />
           <Route path="/change-password" element={<ChangePassword />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>

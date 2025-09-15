@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
+
 import toast from 'react-hot-toast';
 import { Settings, Save, X } from 'lucide-react';
 
-export default function ClientSettingsHelper({ client, onClose, onSave }) {
+export default function AppUpdateHelper({ client, onClose, onSave }) {
   const [appUpdate, setAppUpdate] = useState('');
   const [downloadLink, setDownloadLink] = useState('');
   const [loading, setLoading] = useState(false);
@@ -16,22 +17,23 @@ export default function ClientSettingsHelper({ client, onClose, onSave }) {
     setFetching(true);
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`http://147.93.110.150:3001/api/app_update/${client.client_id}`, {
+      const response = await fetch(`http://147.93.110.150:3001/api/client_update/${client.client_id}`, {
+        method: 'GET',
         headers: { 'Authorization': `Bearer ${token}` }
       });
       
       if (!response.ok) {
-        throw new Error('Failed to fetch app update value');
+        throw new Error('Failed to fetch client update data');
       }
       
       const data = await response.json();
       console.log('Received data from API:', data);
-      setAppUpdate(data.app_update || '');
+      setAppUpdate(data.app_update || 'No');
       setDownloadLink(data.download_link || '');
     } catch (err) {
-      console.error('Fetch app update error:', err);
-      toast.error('Failed to fetch app update value');
-      setAppUpdate('');
+      console.error('Fetch client update error:', err);
+      toast.error('Failed to fetch client update data');
+      setAppUpdate('No');
       setDownloadLink('');
     } finally {
       setFetching(false);
@@ -59,15 +61,14 @@ export default function ClientSettingsHelper({ client, onClose, onSave }) {
       
       // Prepare the data to send
       const dataToSend = {
-        client_id: client.client_id,
         app_update: appUpdate.trim(),
-        download_link: appUpdate === 'Yes' ? downloadLink.trim() : ''
+        download_link: appUpdate === 'Yes' ? downloadLink.trim() : null
       };
       
       console.log('Sending data to API:', dataToSend);
       
-      const response = await fetch('http://147.93.110.150:3001/api/app_update', {
-        method: 'POST',
+      const response = await fetch(`http://147.93.110.150:3001/api/client_update/${client.client_id}`, {
+        method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -78,7 +79,7 @@ export default function ClientSettingsHelper({ client, onClose, onSave }) {
       if (!response.ok) {
         const errorText = await response.text();
         console.error('Response not ok:', response.status, errorText);
-        throw new Error(`Failed to update app update values: ${response.status} ${errorText}`);
+        throw new Error(`Failed to update client: ${response.status} ${errorText}`);
       }
       
       const data = await response.json();
@@ -92,10 +93,10 @@ export default function ClientSettingsHelper({ client, onClose, onSave }) {
         setDownloadLink(data.download_link);
       }
       
-      toast.success('Client settings updated successfully');
+      toast.success('Client update settings saved successfully');
       onSave(data);
     } catch (err) {
-      console.error('Update app update error:', err);
+      console.error('Update client error:', err);
       toast.error('Failed to update client settings');
     } finally {
       setLoading(false);
@@ -122,7 +123,7 @@ export default function ClientSettingsHelper({ client, onClose, onSave }) {
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center gap-2">
             <Settings className="w-5 h-5 text-indigo-600" />
-            <h3 className="text-xl font-semibold text-gray-900">Client Settings</h3>
+            <h3 className="text-xl font-semibold text-gray-900">Client Update Settings</h3>
           </div>
           <button 
             onClick={onClose}
@@ -144,7 +145,7 @@ export default function ClientSettingsHelper({ client, onClose, onSave }) {
         {fetching ? (
           <div className="flex justify-center items-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-            <span className="ml-2 text-gray-600">Loading client settings...</span>
+            <span className="ml-2 text-gray-600">Loading client update settings...</span>
           </div>
         ) : (
           <form onSubmit={handleSubmit}>
@@ -158,9 +159,8 @@ export default function ClientSettingsHelper({ client, onClose, onSave }) {
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 required
               >
-                <option value="">Select an option</option>
-                <option value="Yes">Yes</option>
                 <option value="No">No</option>
+                <option value="Yes">Yes</option>
               </select>
               <p className="text-xs text-gray-500 mt-1">
                 Enable or disable app update functionality (required)
